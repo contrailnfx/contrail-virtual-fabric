@@ -1,0 +1,234 @@
+
+# Contrail Virtual Fabric with vMX
+
+# Contrail 5.0.2 Fabric Management
+
+## Topology
+
+```
+   +-------------+
+   |   client    |
+   | 172.16.1.10 |
+   +-------------+
+          |
+        br-ext
+          |
+  +-----------------+-----------------+  +-----------------+-----------------+
+  |  xe-0/0/0       |  xe-0/0/1       |  |  xe-0/0/0       |  xe-0/0/1       |
+  |  172.16.1.254   |                 |  |                 |                 |
+  |                                   |  |                                   |
+  | vmx-gw1                           |  | vmx-gw2                           |
+  |  em0: 10.6.8.31                   |  |  em0: 10.6.8.32                   |
+  |  lo0: 10.6.0.31                   |  |  lo0: 10.6.0.32                   |
+  |  ASN: 64031                       |  |  ASN: 64032                       |
+  |                                   |  |                                   |
+  |  10.6.50.10/30  |  10.6.50.14/30  |  |  10.6.50.26/30  |  10.6.50.30/30  |
+  |  xe-0/0/2       |  xe-0/0/3       |  |  xe-0/0/2       |  xe-0/0/3       |
+  +-----------------+-----------------+  +-----------------+-----------------+
+        |                  |                   |                 |
+        |               +--(-------------------+                 |
+        |               |  |                                     |
+        |               |  +-------------------+                 |
+        |               |                      |                 |
+  +-----------------+-----------------+  +-----------------+-----------------+
+  |  xe-0/0/0       |  xe-0/0/1       |  |  xe-0/0/0       |  xe-0/0/1       |
+  |  10.6.50.9/30   |  10.6.50.13/30  |  |  10.6.50.25/30  |  10.6.50.29/30  |
+  |                                   |  |                                   |
+  | vqfx-spine1                       |  | vqfx-spine2                       |
+  |  em0: 10.6.8.21                   |  |  em0: 10.6.8.22                   |
+  |  lo0: 10.6.0.21                   |  |  lo0: 10.6.0.22                   |
+  |  ASN: 64021                       |  |  ASN: 64022                       |
+  |                                   |  |                                   |
+  |  10.6.50.1/30   |  10.6.50.5/30   |  |  10.6.50.17/30  |  10.6.50.21/30  |
+  |  xe-0/0/2       |  xe-0/0/3       |  |  xe-0/0/2       |  xe-0/0/3       |
+  +-----------------+-----------------+  +-----------------+-----------------+
+        |                  |                   |                 |
+        |               +--(-------------------+                 |
+        |               |  |                                     |
+        |               |  +-------------------+                 |
+        |               |                      |                 |
+  +----------------+------------------+  +-----------------------------------+
+  |  xe-0/0/0      |  xe-0/0/1        |  |  xe-0/0/0       |  xe-0/0/1       |
+  |  10.6.50.2/30  |  10.6.50.6/30    |  |  10.6.50.18/30  |  10.6.50.22/30  |
+  |                                   |  |                                   |
+  | vqfx-leaf1                        |  | vqfx-leaf2                        |
+  |  em0: 10.6.8.11                   |  |  em0: 10.6.8.12                   |
+  |  lo0: 10.6.0.11                   |  |  lo0: 10.6.0.12                   |
+  |  ASN: 64011                       |  |  ASN: 64012                       |
+  |                                   |  |                                   |
+  |  xe-0/0/4  |  xe-0/0/2 | xe-0/0/3 |  |  xe-0/0/2  |  xe-0/0/3            |
+  +------------+-----------+----------+  +------------+----------------------+
+       |              |         |              |            |
+       |              |         |              |            |
+     br-int       +-------+     |          +-------+        |
+       |          | bms12 |     |          | bms22 |        |
+       |          +-------+     |          +-------+        |
+       |                        |                           |
+  +-----------------------+   +-------------------------------+
+  | openstack   10.6.8.1  |   |          bms-dh               |
+  | contrail    10.6.8.2  |   +-------------------------------+
+  | csn         10.6.8.3  |
+  | compute     10.6.8.4  |
+  | command     10.6.8.10 |
+  +-----------------------+
+       |                         management: 10.6.8.0/24
+     br-mgmt                     loopback:   10.6.0.0/24
+   10.6.8.254                    spine-leaf: 10.6.50.0/24
+       |                         rack-1:     10.6.11.0/24
+    HAProxy                      rack-2:     10.6.12.0/24
+
+  Contrail web UI:   http://<host>:8180
+  Contrail Command:  https://<host>:9091
+  OpenStack Horizon: http://<host>
+```
+
+
+## Resource
+```
+                  vCPU    memory(GB)    disk(GB)    OS
+command             2        32            100      CentOS 7.5-1805
+openstack           6        64            150      CentOS 7.5-1805
+contrail            6        64            150      CentOS 7.5-1805
+csn                 1        16             80      CentOS 7.5-1805
+compute             4        32            100      CentOS 7.5-1805
+vqfx-leaf1-re       1         1                     Junos 18.1
+vqfx-leaf1-pfe      1         2                     Junos 18.1
+vqfx-leaf2-re       1         1                     Junos 18.1
+vqfx-leaf2-pfe      1         2                     Junos 18.1
+vqfx-spine1-re      1         1                     Junos 18.1
+vqfx-spine11-pfe    1         2                     Junos 18.1
+vqfx-spine1-re      1         1                     Junos 18.1
+vqfx-spine11-pfe    1         2                     Junos 18.1
+vmx-gw1-vcp         1         1                     Junos 18.3R1
+vmx-gw1-vfp         4         2                     Junos 18.3R1
+vmx-gw1-vcp         1         1                     Junos 18.3R1
+vmx-gw1-vfp         4         2                     Junos 18.3R1
+bms12               1         1                     Cirros 0.4.0
+bms22               1         1                     Cirros 0.4.0
+bms-dh              1         1                     CentOS 7.5-1805
+----------------------------------------------------------------
+Total              40       214
+```
+
+
+## Build host
+
+`sshpass` is for SSH to vQFX with password in command line. This is only for initialization. After that, SSH key will be used.
+
+`isc-dhcp-server` is for providing DHCP service to vQFX for initialization. After that, static address will be configured on vQFX.
+
+### Ubuntu 16.04.3 with 256GB memory, 2T disk, 32 vCPU
+Install packages.
+```
+apt-get install sshpass isc-dhcp-server
+```
+
+### CentOS 7.5 with 256GB memory, 2T disk, 32 vCPU
+Install packages.
+```
+yum install sshpass dhcp
+```
+
+Stop firewalld.
+```
+systemctl stop firewalld
+systemctl disable firewalld
+```
+
+### SSH key
+Generate SSH key or copy existing key.
+```
+ssh-keygen
+```
+
+### Enable SNAT
+
+Enable SNAT on the host for the cluster to access external/internet.
+
+Ensure `ip_forward` is enabled. Otherwise, enable it in `/etc/sysctl.conf`.
+```
+cat /proc/sys/net/ipv4/ip_forward
+```
+
+Add `iptables` rule into NAT table.
+```
+iptables -t nat -A POSTROUTING -o br-mgmt -j SNAT --to 10.87.68.133
+```
+
+### Enable HAProxy
+
+This for accessing cluster, like web UI, API, etc.
+```
+apt-get install haproxy
+```
+
+```
+listen openstack_horizon
+  bind 10.87.68.133:80
+  server 10.6.8.1 10.6.8.1:80 check inter 2000 rise 2 fall 5
+
+listen contrail-command
+  bind 10.87.68.133:9091
+  mode tcp
+  server 10.6.8.10 10.6.8.10:9091 check inter 2000 rise 2 fall 5
+
+listen contrail-webui
+  bind 10.87.68.133:8180
+  server 10.6.8.2 10.6.8.2:8180 check inter 2000 rise 2 fall 5
+```
+
+## Build POC
+
+* vQFX vmdk image for RE and PFE.
+* CentOS image `CentOS-7-x86_64-GenericCloud-1805.qcow2`.
+* Cirros image `cirros-0.4.0-x86_64-disk.img`.
+* Playbook `contrail-ansible-deployer-5.0.1-0.214.tgz`.
+* Script `poc`, `contrail-command`.
+* command_servers.yml, instances.yaml
+* playbook.patch
+
+```
+poc build-poc
+```
+or
+```
+poc create-bridge
+poc launch-vqfx
+poc configure-vqfx
+poc launch-bms
+poc launch-builder
+poc build-cluster
+poc install-command
+poc launch-command
+```
+
+## Post deployment
+
+Contrail Command Cluster:Advanced Options:Endpoints,
+Update nodejs endpoint to `http://10.6.11.2:8180`.
+
+Update ingress rule in default SG.
+
+Contrail web UI -> Configure -> Infrastructure -> Project Settings -> Other Settings, enable `VxLAN Routing`.
+
+Add default route `10.6.0.0/24 via 10.6.11.254` to all cluster nodes for reaching loopback addresses.
+
+## Import fabric
+
+Physical routers, BGP routers and a default logical router are created.
+
+Assign role, leaf vQFX is `leaf` and `CRB-Access`, spine vQFX is `spine` and `CRB-Gateway` and `DC-Gateway`.
+
+Associate CSN to leafs who have BMS connected.
+
+Update /etc/kolla/ironic-pxe/config.json.
+```
+{
+   "command": "/usr/sbin/in.tftpd --verbose --foreground --user root --address 0.0.0.0:69 --map-file /map-file /tftpboot --blocksize 1200",
+   "config_files": [
+   ]
+}
+```
+
+Restart container `ironic_pxe`.
+
