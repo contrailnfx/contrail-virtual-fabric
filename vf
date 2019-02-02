@@ -1,0 +1,964 @@
+#!/bin/bash
+
+source vm.func
+
+host_nic=br0
+host_address=10.87.68.132
+
+host_br_list="
+  br-int br-r1 br-dummy br-ext
+  br-gw1-int br-gw2-int
+  br-l1-int br-l1-xe2 br-l1-xe3
+  br-l2-int br-l2-xe2 br-l2-xe3
+  br-s1-int br-s1-xe0 br-s1-xe1 br-s1-xe2 br-s1-xe3
+  br-s2-int br-s2-xe0 br-s2-xe1 br-s2-xe2 br-s2-xe3"
+
+host_veth_list="
+  gw1-re,gw1-pfe
+  gw2-re,gw2-pfe
+  s1-re-em1,s1-pfe-em1
+  s1-xe0,gw1-ge2 s1-xe1,gw2-ge2 s1-xe2,l1-xe0 s1-xe3,l2-xe0
+  s2-re-em1,s2-pfe-em1
+  s2-xe0,gw1-ge3 s2-xe1,gw2-ge3 s2-xe2,l1-xe1 s2-xe3,l2-xe1
+  l1-re-em1,l1-pfe-em1
+  l1-xe2,bms12 l1-xe3,bms-dh1
+  l2-re-em1,l2-pfe-em1
+  l2-xe2,bms22 l2-xe3,bms-dh2"
+
+server_list="openstack contrail csn compute"
+vqfx_list="vqfx-s1 vqfx-s2 vqfx-l1 vqfx-l2"
+vmx_list="vmx1 vmx2"
+bms_list="bms12 bms22"
+
+#####################################################
+vm_cpu[vmx1-re]=1
+vm_ram[vmx1-re]=1024
+vm_os[vmx1-re]=vmx-re
+vm_image_type[vmx1-re]=file
+vm_address_list[vmx1-re]="10.6.8.31"
+vm_nic_list[vmx1-re]="br=br-int br=br-gw1-int"
+
+vm_cpu[vmx1-pfe]=4
+vm_ram[vmx1-pfe]=4096
+vm_os[vmx1-pfe]=vmx-pfe
+vm_image_type[vmx1-pfe]=file
+vm_disk_bus[vmx1-pfe]=ide
+vm_nic_list[vmx1-pfe]="br=br-int br=br-gw1-int
+  br=br-ext br=br-ext br=br-s1-xe0 br=br-s2-xe0"
+vm_spec_arg[vmx1-pfe]="--memorybacking hugepages=yes
+  --numatune nodeset=0 --cpu host"
+
+vm_cpu[vmx2-re]=1
+vm_ram[vmx2-re]=1024
+vm_os[vmx2-re]=vmx-re
+vm_image_type[vmx2-re]=file
+vm_address_list[vmx2-re]="10.6.8.32"
+vm_nic_list[vmx2-re]="br=br-int br=br-gw2-int"
+
+vm_cpu[vmx2-pfe]=4
+vm_ram[vmx2-pfe]=4096
+vm_os[vmx2-pfe]=vmx-pfe
+vm_image_type[vmx2-pfe]=file
+vm_disk_bus[vmx2-pfe]=ide
+vm_nic_list[vmx2-pfe]="br=br-int br=br-gw2-int
+  br=br-ext br=br-ext br=br-s1-xe1 br=br-s2-xe1"
+vm_spec_arg[vmx2-pfe]="--memorybacking hugepages=yes
+  --numatune nodeset=1 --cpu host"
+
+vm_cpu[vqfx-s1-re]=1
+vm_ram[vqfx-s1-re]=1024
+vm_os[vqfx-s1-re]=vqfx-re
+vm_image_type[vqfx-s1-re]=file
+vm_address_list[vqfx-s1-re]="10.6.8.21"
+vm_nic_model[vqfx-s1-re]=e1000
+vm_nic_list[vqfx-s1-re]="br=br-int br=br-s1-int br=br-dummy
+  br=br-s1-xe0 br=br-s1-xe1 br=br-s1-xe2 br=br-s1-xe3"
+
+vm_cpu[vqfx-s1-pfe]=1
+vm_ram[vqfx-s1-pfe]=2048
+vm_os[vqfx-s1-pfe]=vqfx-pfe
+vm_image_type[vqfx-s1-pfe]=file
+vm_nic_model[vqfx-s1-pfe]=e1000
+vm_nic_list[vqfx-s1-pfe]="br=br-int br=br-s1-int"
+
+vm_cpu[vqfx-s2-re]=1
+vm_ram[vqfx-s2-re]=1024
+vm_os[vqfx-s2-re]=vqfx-re
+vm_image_type[vqfx-s2-re]=file
+vm_address_list[vqfx-s2-re]="10.6.8.22"
+vm_nic_model[vqfx-s2-re]=e1000
+vm_nic_list[vqfx-s2-re]="br=br-int br=br-s2-int br=br-dummy
+  br=br-s2-xe0 br=br-s2-xe1 br=br-s2-xe2 br=br-s2-xe3"
+
+vm_cpu[vqfx-s2-pfe]=1
+vm_ram[vqfx-s2-pfe]=2048
+vm_os[vqfx-s2-pfe]=vqfx-pfe
+vm_image_type[vqfx-s2-pfe]=file
+vm_nic_model[vqfx-s2-pfe]=e1000
+vm_nic_list[vqfx-s2-pfe]="br=br-int br=br-s2-int"
+
+vm_cpu[vqfx-l1-re]=1
+vm_ram[vqfx-l1-re]=1024
+vm_os[vqfx-l1-re]=vqfx-re
+vm_image_type[vqfx-l1-re]=file
+vm_address_list[vqfx-l1-re]="10.6.8.11"
+vm_nic_model[vqfx-l1-re]=e1000
+vm_nic_list[vqfx-l1-re]="br=br-int br=br-l1-int br=br-dummy
+  br=br-s1-xe2 br=br-s2-xe2 br=br-l1-xe2 br=br-l1-xe3 br=br-r1"
+
+vm_cpu[vqfx-l1-pfe]=1
+vm_ram[vqfx-l1-pfe]=2048
+vm_os[vqfx-l1-pfe]=vqfx-pfe
+vm_image_type[vqfx-l1-pfe]=file
+vm_nic_model[vqfx-l1-pfe]=e1000
+vm_nic_list[vqfx-l1-pfe]="br=br-int br=br-l1-int"
+
+vm_cpu[vqfx-l2-re]=1
+vm_ram[vqfx-l2-re]=1024
+vm_os[vqfx-l2-re]=vqfx-re
+vm_image_type[vqfx-l2-re]=file
+vm_address_list[vqfx-l2-re]="10.6.8.12"
+vm_nic_model[vqfx-l2-re]=e1000
+vm_nic_list[vqfx-l2-re]="br=br-int br=br-l2-int br=br-dummy
+  br=br-s1-xe3 br=br-s2-xe3 br=br-l2-xe2 br=br-l2-xe3"
+
+vm_cpu[vqfx-l2-pfe]=1
+vm_ram[vqfx-l2-pfe]=2048
+vm_os[vqfx-l2-pfe]=vqfx-pfe
+vm_image_type[vqfx-l2-pfe]=file
+vm_nic_model[vqfx-l2-pfe]=e1000
+vm_nic_list[vqfx-l2-pfe]="br=br-int br=br-l2-int"
+
+#####################################################
+vm_cpu[bms12]=1
+vm_ram[bms12]=1024
+vm_os[bms12]=cirros
+vm_image_type[bms12]=file
+vm_nic_list[bms12]="br=br-l1-xe2"
+
+vm_cpu[bms22]=1
+vm_ram[bms22]=1024
+vm_os[bms22]=cirros
+vm_image_type[bms22]=file
+vm_nic_list[bms22]="br=br-l2-xe2"
+
+vm_cpu[bms-dh]=1
+vm_ram[bms-dh]=1024
+vm_disk[bms-dh]=20G
+vm_os[bms-dh]=centos
+vm_image_type[bms-dh]=file
+vm_nic_list[bms-dh]="br=br-l1-xe3 br=br-l2-xe3"
+
+vm_cpu[bms-lcm]=1
+vm_ram[bms-lcm]=1024
+vm_disk[bms-lcm]=20G
+vm_os[bms-lcm]=none
+vm_image_type[bms-lcm]=file
+vm_nic_list[bms-lcm]="br-l2-xe3"
+
+vm_cpu[client]=1
+vm_ram[client]=1024
+vm_os[client]=cirros
+vm_image_type[client]=file
+vm_nic_list[client]="br1"
+
+#####################################################
+vm_cpu[command]=2
+vm_ram[command]=32768
+vm_disk[command]=100G
+vm_os[command]=centos
+vm_image_type[command]=volume
+vm_address_list[command]="10.6.8.10       10.6.11.10"
+vm_netmask_list[command]="255.255.255.0   255.255.255.0"
+vm_gateway_list[command]="10.6.8.254      null"
+vm_nic_list[command]="br=br-int br=br-r1"
+
+vm_cpu[openstack]=4
+vm_ram[openstack]=65535
+vm_disk[openstack]=100G
+vm_os[openstack]=centos
+vm_image_type[openstack]=volume
+vm_address_list[openstack]="10.6.8.1        10.6.11.1"
+vm_netmask_list[openstack]="255.255.255.0   255.255.255.0"
+vm_gateway_list[openstack]="10.6.8.254      null"
+vm_nic_list[openstack]="br=br-int br=br-r1"
+
+vm_cpu[contrail]=4
+vm_ram[contrail]=65535
+vm_disk[contrail]=100G
+vm_os[contrail]=centos
+vm_image_type[contrail]=volume
+vm_address_list[contrail]="10.6.8.1        10.6.11.1"
+vm_netmask_list[contrail]="255.255.255.0   255.255.255.0"
+vm_gateway_list[contrail]="10.6.8.254      null"
+vm_nic_list[contrail]="br=br-int br=br-r1"
+
+vm_cpu[csn]=1
+vm_ram[csn]=16384
+vm_disk[csn]=80G
+vm_os[csn]=centos
+vm_image_type[csn]=volume
+vm_address_list[csn]="10.6.8.2        10.6.11.2"
+vm_netmask_list[csn]="255.255.255.0   255.255.255.0"
+vm_gateway_list[csn]="10.6.8.254      null"
+vm_nic_list[csn]="br=br-int br=br-r1"
+
+vm_cpu[compute]=4
+vm_ram[compute]=32768
+vm_disk[compute]=100G
+vm_os[compute]=centos
+vm_image_type[compute]=volume
+vm_address_list[compute]="10.6.8.3        10.6.11.3"
+vm_netmask_list[compute]="255.255.255.0   255.255.255.0"
+vm_gateway_list[compute]="10.6.8.254      null"
+vm_nic_list[compute]="br=br-int br=br-r1"
+
+
+get_os()
+{
+    cat /etc/os-release | awk -F \" "/^NAME/"'{print $2}'
+}
+
+build_dhcp_conf()
+{
+    local list
+    local arr
+    local addr
+
+    echo "Build /etc/dhcp/dhcpd.conf."
+    cat << __EOF__ > /etc/dhcp/dhcpd.conf
+subnet 10.6.8.0 netmask 255.255.255.0 {
+        option routers                  10.6.8.254;
+        option subnet-mask              255.255.255.0;
+        option broadcast-address        10.6.8.255;
+
+__EOF__
+
+    list=$(virsh list --all | awk "/-re/"'{print $2}')
+    for name in $list; do
+        mac=$(virsh domiflist $name | awk "/br-int/"'{print $5}')
+        arr=(${vm_address_list[$name]})
+        addr=${arr[0]}
+        cat << __EOF__ >> /etc/dhcp/dhcpd.conf
+        host $name {
+                hardware ethernet $mac;
+                fixed-address $addr;
+        }
+__EOF__
+    done
+    echo } >> /etc/dhcp/dhcpd.conf
+
+    echo "Restart DHCP server."
+    if [ "$(get_os)" == "CentOS Linux" ]; then
+        systemctl restart dhcpd
+    elif [ "$(get_os)" == "Ubuntu" ]; then
+        systemctl restart isc-dhcp-server
+    fi
+}
+
+build_host()
+{
+    echo "Build host."
+
+    #ssh-keygen
+
+    #wget https://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img
+    #mv cirros-0.4.0-x86_64-disk.img $image_path
+
+    #wget https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud-1808.qcow2.xz
+    # xz -d CentOS-7-x86_64-GenericCloud-1808.qcow2.xz
+    # mv CentOS-7-x86_64-GenericCloud-1808.qcow2 $image_path
+
+    #qemu-img convert -f vmdk -O qcow2 \
+    #  /root/vqfx-re/packer-virtualbox-ovf-1524541301-disk001.vmdk \
+    #  $image_vqfx_re
+    #qemu-img convert -f vmdk -O qcow2 \
+    #  /root/vqfx-pfe/packer-virtualbox-ovf-1520878605-disk001.vmdk \
+    #  $image_vqfx_pfe
+}
+
+create_host_bridge()
+{
+    local bridge
+    local veth
+
+    for bridge in $host_br_list; do
+        brctl addbr $bridge
+        ip link set dev $bridge up
+    done
+    ip addr add 10.6.8.254/24 dev br-int
+    ip addr add 10.6.11.100/24 dev br-r1
+    #iptables -t nat -A POSTROUTING -o $host_nic -j SNAT --to $host_address
+
+    for veth in $host_veth_list; do
+        IFS=','; a=(${veth})
+        p1=${a[0]}
+        p2=${a[1]}
+        ip link add $p1 type veth peer name $p2
+        ip link set dev $p1 up
+        ip link set dev $p2 up
+    done
+}
+
+delete_host_bridge()
+{
+    local bridge
+    local veth
+
+    for bridge in $host_br_list; do
+        ip link set dev $bridge down 
+        brctl delbr $bridge
+    done
+    #iptables -t nat -D POSTROUTING -o $host_nic -j SNAT --to $host_address
+
+    for veth in $host_veth_list; do
+        IFS=','; a=(${veth})
+        p1=${a[0]}
+        p2=${a[1]}
+        ip link delete $p1
+    done
+}
+
+initialize_vqfx()
+{
+    local arr=(${vm_address_list[$1-re]})
+    local host=${arr[0]}
+
+    echo "Initialize $1."
+    key_pub=$(cat /root/.ssh/id_rsa.pub)
+
+    sshpass -p Juniper ssh $host "cli -c 'configure; \
+set system host-name $1; \
+set system root-authentication ssh-rsa \"$key_pub\"; \
+delete interfaces; \
+set interfaces em0 unit 0 family inet address $host/24; \
+set interfaces em1 unit 0 family inet address 169.254.0.2/24; \
+commit'"
+}
+
+launch_vmx()
+{
+    local name=$1
+
+    echo "Launch vMX $name..."
+    launch_vm $name-re
+    launch_vm $name-pfe
+    #wait_for_host $name-re "Juniper"
+    #initialize_vmx $name
+}
+
+launch_vmx_all()
+{
+    local name
+
+    for name in $vmx_list; do
+        launch_vmx $name
+    done
+}
+
+delete_vmx()
+{
+    local name=$1
+
+    echo "Delete vMX $name..."
+    delete_vm $name-re
+    delete_vm $name-pfe
+}
+
+delete_vmx_all()
+{
+    for name in $vmx_list; do
+        delete_vmx $name
+    done
+}
+
+launch_vqfx()
+{
+    local name=$1
+
+    echo "Launch vQFX $name..."
+    launch_vm $name-re
+    launch_vm $name-pfe
+    wait_for_host $name-re "Juniper"
+    initialize_vqfx $name
+}
+
+launch_vqfx_all()
+{
+    local name
+
+    for name in $vqfx_list; do
+        launch_vqfx $name
+    done
+}
+
+delete_vqfx()
+{
+    local name=$1
+
+    echo "Delete vQFX $name..."
+    delete_vm $name-re
+    delete_vm $name-pfe
+}
+
+delete_vqfx_all()
+{
+    for name in $vqfx_list; do
+        delete_vqfx $name
+    done
+}
+
+configure_vmx1()
+{
+    local arr=(${vm_address_list[vmx1-re]})
+    local host=${arr[0]}
+
+    ssh $host "cli -c 'configure; \
+set interfaces lo0 unit 0 family inet address 10.6.0.31/32; \
+set interfaces ge-0/0/2 unit 0 family inet address 10.6.30.1/30; \
+set interfaces ge-0/0/3 unit 0 family inet address 10.6.30.5/30; \
+set routing-options route-distinguisher-id 10.6.0.31; \
+set routing-options autonomous-system 64031; \
+set protocols bgp group fabric type external; \
+set protocols bgp group fabric family inet unicast; \
+set protocols bgp group fabric export direct; \
+set protocols bgp group fabric neighbor 10.6.30.2 peer-as 64021; \
+set protocols bgp group fabric neighbor 10.6.30.6 peer-as 64022; \
+set policy-options policy-statement direct term t1 from protocol direct; \
+set policy-options policy-statement direct term t1 then accept; \
+commit'"
+}
+
+configure_vmx2()
+{
+    local arr=(${vm_address_list[vmx2-re]})
+    local host=${arr[0]}
+
+    ssh $host "cli -c 'configure; \
+set interfaces lo0 unit 0 family inet address 10.6.0.32/32; \
+set interfaces ge-0/0/2 unit 0 family inet address 10.6.30.9/30; \
+set interfaces ge-0/0/3 unit 0 family inet address 10.6.30.13/30; \
+set routing-options route-distinguisher-id 10.6.0.32; \
+set routing-options autonomous-system 64032; \
+set protocols bgp group fabric type external; \
+set protocols bgp group fabric family inet unicast; \
+set protocols bgp group fabric export direct; \
+set protocols bgp group fabric neighbor 10.6.30.10 peer-as 64021; \
+set protocols bgp group fabric neighbor 10.6.30.14 peer-as 64022; \
+set policy-options policy-statement direct term t1 from protocol direct; \
+set policy-options policy-statement direct term t1 then accept; \
+commit'"
+}
+
+configure_vqfx_s1()
+{
+    local arr=(${vm_address_list[vqfx-s1-re]})
+    local host=${arr[0]}
+
+    ssh $host "cli -c 'configure; \
+set interfaces lo0 unit 0 family inet address 10.6.0.21/32; \
+set interfaces xe-0/0/0 unit 0 family inet address 10.6.30.2/30; \
+set interfaces xe-0/0/1 unit 0 family inet address 10.6.30.10/30; \
+set interfaces xe-0/0/2 unit 0 family inet address 10.6.20.1/30; \
+set interfaces xe-0/0/3 unit 0 family inet address 10.6.20.5/30; \
+set routing-options route-distinguisher-id 10.6.0.21; \
+set routing-options autonomous-system 64021; \
+set protocols bgp group fabric type external; \
+set protocols bgp group fabric family inet unicast; \
+set protocols bgp group fabric export direct; \
+set protocols bgp group fabric neighbor 10.6.30.1 peer-as 64031; \
+set protocols bgp group fabric neighbor 10.6.30.9 peer-as 64032; \
+set protocols bgp group fabric neighbor 10.6.20.2 peer-as 64011; \
+set protocols bgp group fabric neighbor 10.6.20.6 peer-as 64012; \
+set policy-options policy-statement direct term t1 from protocol direct; \
+set policy-options policy-statement direct term t1 then accept; \
+commit'"
+}
+
+configure_vqfx_s2()
+{
+    local arr=(${vm_address_list[vqfx-s2-re]})
+    local host=${arr[0]}
+
+    ssh $host "cli -c 'configure; \
+set interfaces lo0 unit 0 family inet address 10.6.0.22/32; \
+set interfaces xe-0/0/0 unit 0 family inet address 10.6.30.6/30; \
+set interfaces xe-0/0/1 unit 0 family inet address 10.6.30.14/30; \
+set interfaces xe-0/0/2 unit 0 family inet address 10.6.20.9/30; \
+set interfaces xe-0/0/3 unit 0 family inet address 10.6.20.13/30; \
+set routing-options route-distinguisher-id 10.6.0.22; \
+set routing-options autonomous-system 64022; \
+set protocols bgp group fabric type external; \
+set protocols bgp group fabric family inet unicast; \
+set protocols bgp group fabric export direct; \
+set protocols bgp group fabric neighbor 10.6.30.5 peer-as 64031; \
+set protocols bgp group fabric neighbor 10.6.30.13 peer-as 64032; \
+set protocols bgp group fabric neighbor 10.6.20.10 peer-as 64011; \
+set protocols bgp group fabric neighbor 10.6.20.14 peer-as 64012; \
+set policy-options policy-statement direct term t1 from protocol direct; \
+set policy-options policy-statement direct term t1 then accept; \
+commit'"
+}
+
+configure_vqfx_l1()
+{
+    local arr=(${vm_address_list[vqfx-l1-re]})
+    local host=${arr[0]}
+
+    ssh $host "cli -c 'configure; \
+set interfaces lo0 unit 0 family inet address 10.6.0.11/32; \
+set interfaces xe-0/0/0 unit 0 family inet address 10.6.20.2/30; \
+set interfaces xe-0/0/1 unit 0 family inet address 10.6.20.10/30; \
+set interfaces xe-0/0/4 unit 0 family ethernet-switching vlan members vlan-11; \
+set interfaces irb unit 11 family inet address 10.6.11.254/24; \
+set vlans vlan-11 vlan-id 11;set vlans vlan-11 l3-interface irb.11; \
+set routing-options route-distinguisher-id 10.6.0.11; \
+set routing-options autonomous-system 64011; \
+set protocols bgp group fabric type external; \
+set protocols bgp group fabric family inet unicast; \
+set protocols bgp group fabric export direct; \
+set protocols bgp group fabric neighbor 10.6.20.1 peer-as 64021; \
+set protocols bgp group fabric neighbor 10.6.20.9 peer-as 64022; \
+set policy-options policy-statement direct term t1 from protocol direct; \
+set policy-options policy-statement direct term t1 then accept; \
+commit'"
+}
+
+configure_vqfx_l2()
+{
+    local arr=(${vm_address_list[vqfx-l2-re]})
+    local host=${arr[0]}
+
+    ssh $host "cli -c 'configure; \
+set interfaces lo0 unit 0 family inet address 10.6.0.12/32; \
+set interfaces xe-0/0/0 unit 0 family inet address 10.6.20.6/30; \
+set interfaces xe-0/0/1 unit 0 family inet address 10.6.20.14/30; \
+set routing-options route-distinguisher-id 10.6.0.12; \
+set routing-options autonomous-system 64012; \
+set protocols bgp group fabric type external; \
+set protocols bgp group fabric family inet unicast; \
+set protocols bgp group fabric export direct; \
+set protocols bgp group fabric neighbor 10.6.20.5 peer-as 64021; \
+set protocols bgp group fabric neighbor 10.6.20.13 peer-as 64022; \
+set policy-options policy-statement direct term t1 from protocol direct; \
+set policy-options policy-statement direct term t1 then accept; \
+commit'"
+}
+
+configure_vmx()
+{
+    local name=$(echo $1 | sed "s/-/_/g")
+
+    echo "Configure vMX $name..."
+    configure_$name
+}
+
+configure_vmx_all()
+{
+    local name
+
+    for name in $vmx_list; do
+        configure_vmx $name
+    done
+}
+
+configure_vqfx()
+{
+    local name=$(echo $1 | sed "s/-/_/g")
+
+    echo "Configure vQFX $name..."
+    configure_$name
+}
+
+configure_vqfx_all()
+{
+    local name
+
+    for name in $vqfx_list; do
+        configure_vqfx $name
+    done
+}
+
+launch_bms_all()
+{
+    local name
+
+    for name in $bms_list; do
+        launch_vm $name
+    done
+}
+
+delete_bms_all()
+{
+    local name
+
+    for name in $bms_list; do
+        delete_vm $name
+    done
+}
+
+launch_builder()
+{
+    local arr=(${vm_address_list[command]})
+    local host=${arr[0]}
+
+    launch_vm "command"
+    wait_for_host "command"
+
+    scp /root/.ssh/id_rsa $host:/root/.ssh/
+    scp /root/.ssh/id_rsa.pub $host:/root/.ssh/
+    scp /root/.ssh/config $host:/root/.ssh/
+
+    ssh $host yum install -y ansible git
+}
+
+delete_builder()
+{
+    delete_vm "command"
+}
+
+run_playbook()
+{
+    local arr=(${vm_address_list[command]})
+    local host=${arr[0]}
+
+    echo "Clean up playbook..."
+    ssh $host "rm -fr contrail-ansible-deployer"
+    ssh $host "rm -fr contrail-kolla-ansible"
+
+    echo "Upload playbook..."
+    scp /root/contrail-ansible-deployer-5.0.tgz $host:./cad.tgz
+    ssh $host "tar -xzf cad.tgz"
+    ssh $host "rm -f cad.tgz"
+
+    echo "Run playbook......"
+    scp instances.yaml $host:./contrail-ansible-deployer/config/
+
+    ssh $host "cd contrail-ansible-deployer; \
+      ansible-playbook -i inventory -e orchestrator=openstack \
+      playbooks/configure_instances.yml"
+
+    ssh $host "cd contrail-ansible-deployer; \
+      ansible-playbook -i inventory/ \
+      playbooks/install_openstack.yml"
+
+    ssh $host "cd contrail-ansible-deployer; \
+      ansible-playbook -i inventory/ -e orchestrator=openstack \
+      playbooks/install_contrail.yml"
+}
+
+patch_nova_compute()
+{
+    local arr=(${vm_address_list[compute]})
+    local host=${arr[0]}
+
+    ssh $host "sed -i '/\[libvirt\]/ a\cpu_mode=none' \
+      /etc/kolla/nova-compute/nova.conf"
+    ssh $host "sed -i '/\[libvirt\]/ a\virt_type=qemu'\
+      /etc/kolla/nova-compute/nova.conf"
+    ssh $host "docker restart nova_compute"
+}
+
+patch_fabric_playbook()
+{
+    local arr=(${vm_address_list[contrail]})
+    local host=${arr[0]}
+    local list=$(cat playbook.patch | awk "/\+\+\+/"'{print $2}')
+    local file
+    local name
+
+    ssh $host "yum install -y patch"
+    scp playbook.patch $host:./
+    for file in $list; do
+        ssh $host "docker cp config_api_1:$file ./"
+    done
+    ssh $host "patch < playbook.patch"
+    for file in $list; do
+        name=$(echo $file | awk -F / '{print $8}')
+        ssh $host "docker cp $name config_api_1:$file"
+    done
+}
+
+setup_openstack()
+{
+    local arr=(${vm_address_list[controller]})
+    local host=${arr[0]}
+
+    scp $image_path/$image_cirros $host:/etc/kolla/kolla-toolbox/
+    ssh $host "docker exec kolla_toolbox \
+      bash -c \"source /var/lib/kolla/config_files/admin-openrc.sh; \
+        openstack flavor create \
+          --id 1 --disk 1 --ram 512 --vcpus 1 --public m1.tiny\""
+    ssh $host "docker exec kolla_toolbox \
+      bash -c \"source /var/lib/kolla/config_files/admin-openrc.sh; \
+        openstack image create \
+          --container-format bare --disk-format qcow2 --public \
+          --file /var/lib/kolla/config_files/$image_cirros cirros\""
+    ssh $host "rm -f /etc/kolla/kolla-toolbox/$image_cirros"
+}
+
+configure_poc()
+{
+    local arr=(${vm_address_list[controller]})
+    local host=${arr[0]}
+
+    scp $image_path/$image_cirros $host:/etc/kolla/kolla-toolbox/
+    scp bms-enroll.initrd $host:/etc/kolla/kolla-toolbox/
+    scp bms-enroll.vmlinuz $host:/etc/kolla/kolla-toolbox/
+    scp bms.initrd $host:/etc/kolla/kolla-toolbox/
+    scp bms.vmlinuz $host:/etc/kolla/kolla-toolbox/
+    scp bms.qcow2 $host:/etc/kolla/kolla-toolbox/
+    scp configure-poc $host:/etc/kolla/kolla-toolbox/
+    ssh $host "docker exec kolla_toolbox \
+      /var/lib/kolla/config_files/configure-poc"
+    ssh $host "rm -f /etc/kolla/kolla-toolbox/$image_cirros"
+    ssh $host "rm -f /etc/kolla/kolla-toolbox/bms-enroll.vmlinuz"
+    ssh $host "rm -f /etc/kolla/kolla-toolbox/bms-enroll.initrd"
+    ssh $host "rm -f /etc/kolla/kolla-toolbox/bms.vmlinuz"
+    ssh $host "rm -f /etc/kolla/kolla-toolbox/bms.initrd"
+    ssh $host "rm -f /etc/kolla/kolla-toolbox/bms.qcow2"
+    ssh $host "rm -f /etc/kolla/kolla-toolbox/configure-poc"
+}
+
+add_static_route()
+{
+    local arr
+    local host
+    local name
+
+    for name in $server_list; do
+        arr=(${vm_address_list[$name]})
+        host=${arr[0]}
+        ssh $host ip route add 10.6.0.0/24 via 10.6.11.254
+    done
+}
+
+
+install_command()
+{
+    local arr=(${vm_address_list[command]})
+    local host=${arr[0]}
+
+    scp contrail-command $host:.
+    ssh $host "./contrail-command install"
+}
+
+launch_command()
+{
+    local arr=(${vm_address_list[command]})
+    local host=${arr[0]}
+
+    scp command_servers.yml $host:.
+    scp instances.yaml $host:.
+    scp contrail-command $host:.
+    ssh $host "./contrail-command launch"
+}
+ 
+delete_command()
+{
+    local arr=(${vm_address_list[command]})
+    local host=${arr[0]}
+
+    scp contrail-command $host:.
+    ssh $host "./contrail-command delete"
+}
+ 
+build_cluster()
+{
+    local name
+
+    for name in $server_list; do
+        launch_vm $name
+    done
+    for name in $server_list; do
+        wait_for_host $name
+    done
+    run_playbook
+    patch_nova_compute
+    #patch_fabric_playbook
+    setup_openstack
+    #configure_poc
+    add_static_route
+}
+
+delete_cluster()
+{
+    local name
+
+    for name in $server_list; do
+        delete_vm $name
+    done
+}
+
+create_poc()
+{
+    create_host_bridge
+    launch_vqfx_all
+    configure_vqfx_s1
+    configure_vqfx_l1
+    configure_vqfx_l2
+    launch_bms_all
+    launch_builder
+    build_cluster
+    install_command
+}
+
+delete_poc()
+{
+    delete_builder
+    delete_cluster
+    delete_bms_all
+    delete_vqfx_all
+    delete_host_bridge
+}
+
+help()
+{
+    echo "$0 help"
+    echo "  build-host             Setup the host for the POC."
+    echo "  build-host-bridge      Build bridges on the host."
+    echo "  launch-vqfx [name]     Launch the specified or all vQFX VMs."
+    echo "  configure-vqfx [name]  Configure the specified or all vQFX"
+    echo "  launch-bms [name]      Launch the specified or all BMS VMs."
+    echo "  build-builder          Build builder VM."
+    echo "  build-cluster          Build the cluster."
+    echo "  build-command          Install Contrail Command."
+    echo "  delete-command         Delete Contrail Command."
+    echo "  delete-builder         Delete builder VM."
+    echo "  delete-cluster         Delete the cluster."
+    echo "  delete-bms [name]      Delete specified or all BMS VM."
+    echo "  delete-vqfx [name]     Delete specified or all vQFX VM."
+    echo "  delete-host-bridge     Delete bridges on the host."
+    echo "  build-poc              Build POC."
+    echo "  delete-poc             Delete POC."
+}
+
+launch_cirros()
+{
+    virt-install --connect qemu:///system --virt-type kvm \
+      --name cirros --vcpus 1 --ram 1024 \
+      --disk path=$instance_path/cirros.qcow2,format=qcow2 \
+      --network bridge=br-int,model=virtio \
+      --graphics vnc,listen=0.0.0.0 --noautoconsole \
+      --boot hd
+}
+
+test()
+{
+    echo "Test"
+}
+
+main()
+{
+    case "$1" in
+        test)
+            test
+            ;;
+        create-bridge)
+            create_host_bridge
+            ;;
+        delete-bridge)
+            delete_host_bridge
+            ;;
+        launch-vm)
+            shift
+            launch_vm "$@"
+            ;;
+        launch-vmx)
+            shift
+            if [ $1 ]; then
+                launch_vmx "$@"
+            else
+                launch_vmx_all
+            fi
+            ;;
+        configure-vmx)
+            shift
+            if [ $1 ]; then
+                configure_vmx "$@"
+            else
+                configure_vmx_all
+            fi
+            ;;
+        delete-vmx)
+            shift
+            if [ $1 ]; then
+                delete_vmx "$@"
+            else
+                delete_vmx_all
+            fi
+            ;;
+        launch-vqfx)
+            shift
+            if [ $1 ]; then
+                launch_vqfx "$@"
+            else
+                launch_vqfx_all
+            fi
+            ;;
+        configure-vqfx)
+            shift
+            if [ $1 ]; then
+                configure_vqfx "$@"
+            else
+                configure_vqfx_all
+            fi
+            ;;
+        delete-vqfx)
+            shift
+            if [ $1 ]; then
+                delete_vqfx "$@"
+            else
+                delete_vqfx_all
+            fi
+            ;;
+        launch-bms)
+            shift
+            if [ $1 ]; then
+                launch_vm "$@"
+            else
+                launch_bms_all
+            fi
+            ;;
+        delete-bms)
+            shift
+            if [ $1 ]; then
+                delete_vm "$@"
+            else
+                delete_bms_all
+            fi
+            ;;
+        launch-builder)
+            launch_builder
+            ;;
+        install-command)
+            install_command
+            ;;
+        launch-command)
+            launch_command
+            ;;
+        delete-command)
+            delete_command
+            ;;
+        build-cluster)
+            build_cluster
+            ;;
+        delete-cluster)
+            delete_cluster
+            ;;
+        rebuild-cluster)
+            delete_cluster
+            build_cluster
+            ;;
+        configure-poc)
+            configure_poc
+            ;;
+        *)
+            help
+            ;;
+    esac
+}
+
+main "$@"
+exit 0
+
