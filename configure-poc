@@ -1,0 +1,97 @@
+#!/bin/bash
+
+source /var/lib/kolla/config_files/admin-openrc.sh
+
+create_flavor()
+{
+    openstack flavor create \
+      --disk 1 --ram 512 --vcpus 1 --public \
+      m1.tiny
+
+    openstack flavor create \
+      --disk 10 --ram 1024 --vcpus 1 --public \
+      bms.tiny
+}
+
+create_vm_image()
+{
+    openstack image create \
+      --container-format bare \
+      --disk-format qcow2 \
+      --public \
+      --file /var/lib/kolla/config_files/cirros-0.4.0-x86_64-disk.img \
+      cirros
+}
+
+create_bms_image()
+{
+    openstack image create \
+      --container-format aki \
+      --disk-format aki \
+      --public \
+      --property server_type=baremetal \
+      --file /var/lib/kolla/config_files/bms-enroll.initrd \
+      bms-enroll-ramdisk
+
+    openstack image create \
+      --container-format aki \
+      --disk-format aki \
+      --public \
+      --property server_type=baremetal \
+      --file /var/lib/kolla/config_files/bms-enroll.vmlinuz \
+      bms-enroll-kernel
+
+    openstack image create \
+      --container-format aki \
+      --disk-format aki \
+      --public \
+      --property server_type=baremetal \
+      --file /var/lib/kolla/config_files/bms.initrd \
+      bms-ramdisk
+
+    openstack image create \
+      --container-format aki \
+      --disk-format aki \
+      --public \
+      --property server_type=baremetal \
+      --file /var/lib/kolla/config_files/bms.vmlinuz \
+      bms-kernel
+
+    kid=$(openstack image list | awk "/bms-kernel/"'{print $2}')
+    rid=$(openstack image list | awk "/bms-ramdisk/"'{print $2}')
+
+    openstack image create \
+      --container-format bare \
+      --disk-format qcow2 \
+      --public \
+      --property server_type=baremetal \
+      --property kernel_id=$kid \
+      --property ramdisk_id=$rid \
+      --file /var/lib/kolla/config_files/bms.qcow2 \
+      bms-image
+}
+
+create_network()
+{
+    openstack network create red
+    openstack network create blue
+    openstack network create corp
+    openstack subnet create \
+      --network red \
+      --subnet-range 192.168.10.0/24 \
+      subnet-red
+    openstack subnet create \
+      --network blue \
+      --subnet-range 192.168.20.0/24 \
+      subnet-blue
+    openstack subnet create \
+      --network corp \
+      --subnet-range 172.16.10.0/24 \
+      subnet-corp
+}
+
+create_flavor
+create_vm_image
+create_bms_image
+create_network
+
