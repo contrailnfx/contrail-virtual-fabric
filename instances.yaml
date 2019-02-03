@@ -1,0 +1,59 @@
+provider_config:
+  bms:
+    ssh_pwd: c0ntrail123
+    ssh_user: root
+    ntpserver: 10.84.5.100
+    domainsuffix: local
+instances:
+  openstack:
+    provider: bms
+    ip: 10.6.8.1
+    roles:
+      openstack_control:
+      openstack_network:
+      openstack_storage:
+      openstack_monitoring:
+  contrail:
+    provider: bms
+    ip: 10.6.8.2
+    roles:
+      config_database:
+      config:
+      control:
+      analytics_database:
+      analytics:
+      webui:
+  csn:
+    provider: bms
+    ip: 10.6.8.3
+    roles:
+      vrouter:
+        TSN_EVPN_MODE: True
+  compute:
+    provider: bms
+    ip: 10.6.8.4
+    roles:
+      vrouter:
+      openstack_compute:
+global_configuration:
+  CONTAINER_REGISTRY: ci-repo.englab.juniper.net:5010
+  REGISTRY_PRIVATE_INSECURE: True
+contrail_configuration:
+  CONTRAIL_CONTAINER_TAG: queens-5.0-360
+  CLOUD_ORCHESTRATOR: openstack
+  OPENSTACK_VERSION: queens
+  CONTROLLER_NODES: 10.6.11.2
+  CONTROL_NODES: 10.6.11.2
+  WEBUI_NODES: 10.6.11.2
+  VROUTER_GATEWAY: 10.6.11.254
+  TSN_NODES: 10.6.11.3
+  ENCAP_PRIORITY: VXLAN,MPLSoUDP,MPLSoGRE
+  CONFIG_DATABASE_NODEMGR__DEFAULTS__minimum_diskGB: 20
+  DATABASE_NODEMGR__DEFAULTS__minimum_diskGB: 20
+  AAA_MODE: no-auth
+kolla_config:
+  kolla_globals:
+    enable_haproxy: "no"
+  kolla_passwords:
+    keystone_admin_password: contrail123
+
