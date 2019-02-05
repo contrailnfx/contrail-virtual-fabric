@@ -6,12 +6,12 @@ host_nic=br0
 host_address=10.87.68.132
 
 host_br_list="
-  br-int br-r1 br-dummy br-ext
-  br-gw1-int br-gw2-int
-  br-l1-int br-l1-xe2 br-l1-xe3
-  br-l2-int br-l2-xe2 br-l2-xe3
-  br-s1-int br-s1-xe0 br-s1-xe1 br-s1-xe2 br-s1-xe3
-  br-s2-int br-s2-xe0 br-s2-xe1 br-s2-xe2 br-s2-xe3"
+  br-int br-r1 br-dummy br-ext"
+#  br-gw1-int br-gw2-int
+#  br-l1-int br-l1-xe2 br-l1-xe3
+#  br-l2-int br-l2-xe2 br-l2-xe3
+#  br-s1-int br-s1-xe0 br-s1-xe1 br-s1-xe2 br-s1-xe3
+#  br-s2-int br-s2-xe0 br-s2-xe1 br-s2-xe2 br-s2-xe3"
 
 host_veth_list="
   gw1-re,gw1-pfe
@@ -31,20 +31,95 @@ vmx_list="vmx1 vmx2"
 bms_list="bms12 bms22"
 
 #####################################################
+vm_cpu[vqfx-s1-re]=1
+vm_ram[vqfx-s1-re]=1024
+vm_os[vqfx-s1-re]=vqfx-re
+vm_image_type[vqfx-s1-re]=file
+vm_address_list[vqfx-s1-re]="10.6.8.21"
+#vm_nic_list[vqfx-s1-re]="br=br-int br=br-s1-int br=br-dummy
+#  br=br-s1-xe0 br=br-s1-xe1 dir=s1-xe2 br=br-s1-xe3"
+vm_nic_list[vqfx-s1-re]="br=br-int dir=s1-re-em1 br=br-dummy
+  dir=s1-xe0 dir=s1-xe1 dir=s1-xe2 dir=s1-xe3"
+
+vm_cpu[vqfx-s1-pfe]=1
+vm_ram[vqfx-s1-pfe]=2048
+vm_os[vqfx-s1-pfe]=vqfx-pfe
+vm_image_type[vqfx-s1-pfe]=file
+vm_nic_model[vqfx-s1-pfe]=e1000
+#vm_nic_list[vqfx-s1-pfe]="br=br-int br=br-s1-int"
+vm_nic_list[vqfx-s1-pfe]="br=br-int dir=s1-pfe-em1"
+
+vm_cpu[vqfx-s2-re]=1
+vm_ram[vqfx-s2-re]=1024
+vm_os[vqfx-s2-re]=vqfx-re
+vm_image_type[vqfx-s2-re]=file
+vm_address_list[vqfx-s2-re]="10.6.8.22"
+#vm_nic_list[vqfx-s2-re]="br=br-int br=br-s2-int br=br-dummy
+#  br=br-s2-xe0 br=br-s2-xe1 br=br-s2-xe2 br=br-s2-xe3"
+vm_nic_list[vqfx-s2-re]="br=br-int dir=s2-re-em1 br=br-dummy
+  dir=s2-xe0 dir=s2-xe1 dir=s2-xe2 dir=s2-xe3"
+
+vm_cpu[vqfx-s2-pfe]=1
+vm_ram[vqfx-s2-pfe]=2048
+vm_os[vqfx-s2-pfe]=vqfx-pfe
+vm_image_type[vqfx-s2-pfe]=file
+vm_nic_model[vqfx-s2-pfe]=e1000
+#vm_nic_list[vqfx-s2-pfe]="br=br-int br=br-s2-int"
+vm_nic_list[vqfx-s2-pfe]="br=br-int dir=s2-pfe-em1"
+
+vm_cpu[vqfx-l1-re]=1
+vm_ram[vqfx-l1-re]=1024
+vm_os[vqfx-l1-re]=vqfx-re
+vm_image_type[vqfx-l1-re]=file
+vm_address_list[vqfx-l1-re]="10.6.8.11"
+#vm_nic_list[vqfx-l1-re]="br=br-int br=br-l1-int br=br-dummy
+#  dir=l1-xe0 br=br-s2-xe2 br=br-l1-xe2 br=br-l1-xe3 br=br-r1"
+vm_nic_list[vqfx-l1-re]="br=br-int dir=l1-re-em1 br=br-dummy
+  dir=l1-xe0 dir=l1-xe1 dir=l1-xe2 dir=l1-xe3 br=br-r1"
+
+vm_cpu[vqfx-l1-pfe]=1
+vm_ram[vqfx-l1-pfe]=2048
+vm_os[vqfx-l1-pfe]=vqfx-pfe
+vm_image_type[vqfx-l1-pfe]=file
+vm_nic_model[vqfx-l1-pfe]=e1000
+#vm_nic_list[vqfx-l1-pfe]="br=br-int br=br-l1-int"
+vm_nic_list[vqfx-l1-pfe]="br=br-int dir=l1-pfe-em1"
+
+vm_cpu[vqfx-l2-re]=1
+vm_ram[vqfx-l2-re]=1024
+vm_os[vqfx-l2-re]=vqfx-re
+vm_image_type[vqfx-l2-re]=file
+vm_address_list[vqfx-l2-re]="10.6.8.12"
+#vm_nic_list[vqfx-l2-re]="br=br-int br=br-l2-int br=br-dummy
+#  br=br-s1-xe3 br=br-s2-xe3 br=br-l2-xe2 br=br-l2-xe3"
+vm_nic_list[vqfx-l2-re]="br=br-int dir=l2-re-em1 br=br-dummy
+  dir=l2-xe0 dir=l2-xe1 dir=l2-xe2 dir=l2-xe3"
+
+vm_cpu[vqfx-l2-pfe]=1
+vm_ram[vqfx-l2-pfe]=2048
+vm_os[vqfx-l2-pfe]=vqfx-pfe
+vm_image_type[vqfx-l2-pfe]=file
+vm_nic_model[vqfx-l2-pfe]=e1000
+#vm_nic_list[vqfx-l2-pfe]="br=br-int br=br-l2-int"
+vm_nic_list[vqfx-l2-pfe]="br=br-int dir=l2-pfe-em1"
+
 vm_cpu[vmx1-re]=1
 vm_ram[vmx1-re]=1024
 vm_os[vmx1-re]=vmx-re
 vm_image_type[vmx1-re]=file
 vm_address_list[vmx1-re]="10.6.8.31"
-vm_nic_list[vmx1-re]="br=br-int br=br-gw1-int"
+#vm_nic_list[vmx1-re]="br=br-int br=br-gw1-int"
+vm_nic_list[vmx1-re]="br=br-int dir=gw1-re"
 
 vm_cpu[vmx1-pfe]=4
 vm_ram[vmx1-pfe]=4096
 vm_os[vmx1-pfe]=vmx-pfe
 vm_image_type[vmx1-pfe]=file
 vm_disk_bus[vmx1-pfe]=ide
-vm_nic_list[vmx1-pfe]="br=br-int br=br-gw1-int
-  br=br-ext br=br-ext br=br-s1-xe0 br=br-s2-xe0"
+#vm_nic_list[vmx1-pfe]="br=br-int br=br-gw1-int
+#  br=br-ext br=br-ext br=br-s1-xe0 br=br-s2-xe0"
+vm_nic_list[vmx1-pfe]="br=br-int dir=gw1-pfe
+  br=br-ext br=br-ext dir=gw1-ge2 dir=gw1-ge3"
 vm_spec_arg[vmx1-pfe]="--memorybacking hugepages=yes
   --numatune nodeset=0 --cpu host"
 
@@ -53,81 +128,20 @@ vm_ram[vmx2-re]=1024
 vm_os[vmx2-re]=vmx-re
 vm_image_type[vmx2-re]=file
 vm_address_list[vmx2-re]="10.6.8.32"
-vm_nic_list[vmx2-re]="br=br-int br=br-gw2-int"
+#vm_nic_list[vmx2-re]="br=br-int br=br-gw2-int"
+vm_nic_list[vmx2-re]="br=br-int dir=gw2-re"
 
 vm_cpu[vmx2-pfe]=4
 vm_ram[vmx2-pfe]=4096
 vm_os[vmx2-pfe]=vmx-pfe
 vm_image_type[vmx2-pfe]=file
 vm_disk_bus[vmx2-pfe]=ide
-vm_nic_list[vmx2-pfe]="br=br-int br=br-gw2-int
-  br=br-ext br=br-ext br=br-s1-xe1 br=br-s2-xe1"
+#vm_nic_list[vmx2-pfe]="br=br-int br=br-gw2-int
+#  br=br-ext br=br-ext br=br-s1-xe1 br=br-s2-xe1"
+vm_nic_list[vmx2-pfe]="br=br-int dir=gw2-pfe
+  br=br-ext br=br-ext dir=gw2-ge2 dir=gw2-ge3"
 vm_spec_arg[vmx2-pfe]="--memorybacking hugepages=yes
   --numatune nodeset=1 --cpu host"
-
-vm_cpu[vqfx-s1-re]=1
-vm_ram[vqfx-s1-re]=1024
-vm_os[vqfx-s1-re]=vqfx-re
-vm_image_type[vqfx-s1-re]=file
-vm_address_list[vqfx-s1-re]="10.6.8.21"
-vm_nic_model[vqfx-s1-re]=e1000
-vm_nic_list[vqfx-s1-re]="br=br-int br=br-s1-int br=br-dummy
-  br=br-s1-xe0 br=br-s1-xe1 br=br-s1-xe2 br=br-s1-xe3"
-
-vm_cpu[vqfx-s1-pfe]=1
-vm_ram[vqfx-s1-pfe]=2048
-vm_os[vqfx-s1-pfe]=vqfx-pfe
-vm_image_type[vqfx-s1-pfe]=file
-vm_nic_model[vqfx-s1-pfe]=e1000
-vm_nic_list[vqfx-s1-pfe]="br=br-int br=br-s1-int"
-
-vm_cpu[vqfx-s2-re]=1
-vm_ram[vqfx-s2-re]=1024
-vm_os[vqfx-s2-re]=vqfx-re
-vm_image_type[vqfx-s2-re]=file
-vm_address_list[vqfx-s2-re]="10.6.8.22"
-vm_nic_model[vqfx-s2-re]=e1000
-vm_nic_list[vqfx-s2-re]="br=br-int br=br-s2-int br=br-dummy
-  br=br-s2-xe0 br=br-s2-xe1 br=br-s2-xe2 br=br-s2-xe3"
-
-vm_cpu[vqfx-s2-pfe]=1
-vm_ram[vqfx-s2-pfe]=2048
-vm_os[vqfx-s2-pfe]=vqfx-pfe
-vm_image_type[vqfx-s2-pfe]=file
-vm_nic_model[vqfx-s2-pfe]=e1000
-vm_nic_list[vqfx-s2-pfe]="br=br-int br=br-s2-int"
-
-vm_cpu[vqfx-l1-re]=1
-vm_ram[vqfx-l1-re]=1024
-vm_os[vqfx-l1-re]=vqfx-re
-vm_image_type[vqfx-l1-re]=file
-vm_address_list[vqfx-l1-re]="10.6.8.11"
-vm_nic_model[vqfx-l1-re]=e1000
-vm_nic_list[vqfx-l1-re]="br=br-int br=br-l1-int br=br-dummy
-  br=br-s1-xe2 br=br-s2-xe2 br=br-l1-xe2 br=br-l1-xe3 br=br-r1"
-
-vm_cpu[vqfx-l1-pfe]=1
-vm_ram[vqfx-l1-pfe]=2048
-vm_os[vqfx-l1-pfe]=vqfx-pfe
-vm_image_type[vqfx-l1-pfe]=file
-vm_nic_model[vqfx-l1-pfe]=e1000
-vm_nic_list[vqfx-l1-pfe]="br=br-int br=br-l1-int"
-
-vm_cpu[vqfx-l2-re]=1
-vm_ram[vqfx-l2-re]=1024
-vm_os[vqfx-l2-re]=vqfx-re
-vm_image_type[vqfx-l2-re]=file
-vm_address_list[vqfx-l2-re]="10.6.8.12"
-vm_nic_model[vqfx-l2-re]=e1000
-vm_nic_list[vqfx-l2-re]="br=br-int br=br-l2-int br=br-dummy
-  br=br-s1-xe3 br=br-s2-xe3 br=br-l2-xe2 br=br-l2-xe3"
-
-vm_cpu[vqfx-l2-pfe]=1
-vm_ram[vqfx-l2-pfe]=2048
-vm_os[vqfx-l2-pfe]=vqfx-pfe
-vm_image_type[vqfx-l2-pfe]=file
-vm_nic_model[vqfx-l2-pfe]=e1000
-vm_nic_list[vqfx-l2-pfe]="br=br-int br=br-l2-int"
 
 #####################################################
 vm_cpu[bms12]=1
@@ -291,7 +305,7 @@ create_host_bridge()
     #iptables -t nat -A POSTROUTING -o $host_nic -j SNAT --to $host_address
 
     for veth in $host_veth_list; do
-        IFS=','; a=(${veth})
+        IFS=','; a=(${veth}); unset IFS
         p1=${a[0]}
         p2=${a[1]}
         ip link add $p1 type veth peer name $p2
@@ -312,7 +326,7 @@ delete_host_bridge()
     #iptables -t nat -D POSTROUTING -o $host_nic -j SNAT --to $host_address
 
     for veth in $host_veth_list; do
-        IFS=','; a=(${veth})
+        IFS=','; a=(${veth}); unset IFS
         p1=${a[0]}
         p2=${a[1]}
         ip link delete $p1
@@ -327,12 +341,42 @@ initialize_vqfx()
     echo "Initialize $1."
     key_pub=$(cat /root/.ssh/id_rsa.pub)
 
+    mac0=$(virsh domiflist $1-re | awk "/-xe0/"'{print $5}')
+    mac1=$(virsh domiflist $1-re | awk "/-xe1/"'{print $5}')
+    mac2=$(virsh domiflist $1-re | awk "/-xe2/"'{print $5}')
+    mac3=$(virsh domiflist $1-re | awk "/-xe3/"'{print $5}')
+
     sshpass -p Juniper ssh $host "cli -c 'configure; \
 set system host-name $1; \
 set system root-authentication ssh-rsa \"$key_pub\"; \
 delete interfaces; \
+set interfaces xe-0/0/0 mac $mac0; \
+set interfaces xe-0/0/1 mac $mac1; \
+set interfaces xe-0/0/2 mac $mac2; \
+set interfaces xe-0/0/3 mac $mac3; \
 set interfaces em0 unit 0 family inet address $host/24; \
 set interfaces em1 unit 0 family inet address 169.254.0.2/24; \
+commit'"
+}
+
+initialize_vmx()
+{
+    local arr=(${vm_address_list[$1-re]})
+    local host=${arr[0]}
+
+    echo "Initialize $1."
+    key_pub=$(cat /root/.ssh/id_rsa.pub)
+
+    mac2=$(virsh domiflist $1-pfe | awk "/-ge2/"'{print $5}')
+    mac3=$(virsh domiflist $1-pfe | awk "/-ge3/"'{print $5}')
+
+    sshpass -p Juniper ssh $host "cli -c 'configure; \
+set system host-name $1; \
+set system root-authentication ssh-rsa \"$key_pub\"; \
+delete interfaces; \
+set interfaces ge-0/0/2 mac $mac2; \
+set interfaces ge-0/0/3 mac $mac3; \
+set interfaces fxp0 unit 0 family inet address $host/24; \
 commit'"
 }
 
@@ -343,8 +387,8 @@ launch_vmx()
     echo "Launch vMX $name..."
     launch_vm $name-re
     launch_vm $name-pfe
-    #wait_for_host $name-re "Juniper"
-    #initialize_vmx $name
+    wait_for_host $name-re "Juniper"
+    initialize_vmx $name
 }
 
 launch_vmx_all()
@@ -363,6 +407,8 @@ delete_vmx()
     echo "Delete vMX $name..."
     delete_vm $name-re
     delete_vm $name-pfe
+    rm -f $instance_path/$name-re-hdd.qcow2 \
+        $instance_path/$name-re-usb.qcow2
 }
 
 delete_vmx_all()
