@@ -1,9 +1,9 @@
 
-# Contrail Virtual Fabric with vMX
+# Contrail Virtual Fabric with vQFX and vMX
 
-# Contrail 5.0.2 Fabric Management
+Contrail 5.0.2 Fabric Management
 
-## Topology
+# 1 Topology
 
 ```
    +-------------+
@@ -77,7 +77,7 @@
        |                         rack-1:     10.6.11.0/24
     HAProxy                      rack-2:     10.6.12.0/24
 
-  Contrail web UI:   http://<host>:8180
+  Contrail web UI:   https://<host>:8143
   Contrail Command:  https://<host>:9091
   OpenStack Horizon: http://<host>
 ```
@@ -111,7 +111,9 @@ Total              36       214
 ```
 
 
-## Build host
+# 2 Build host
+
+## 2.1 Packages
 
 `sshpass` is for SSH to vQFX with password in command line. This is only for initialization. After that, SSH key will be used.
 
@@ -141,7 +143,16 @@ Generate SSH key or copy existing key.
 ssh-keygen
 ```
 
-### Enable SNAT
+## 2.2 Links
+
+### Linux bridge
+Doesn't forward LACP packet, can't validate BMS duel-homeing.
+
+### macvtap on veth
+Better performance. The MAC in VM has to match the MAC on macvtap interface. For vQFX, it doesn't take the MAC from NIC, have to set MAC in configuration.
+
+
+## 2.3 SNAT
 
 Enable SNAT on the host for the cluster to access external/internet.
 
@@ -152,8 +163,63 @@ cat /proc/sys/net/ipv4/ip_forward
 
 Add `iptables` rule into NAT table.
 ```
-iptables -t nat -A POSTROUTING -o br-mgmt -j SNAT --to 10.87.68.133
+iptables -t nat -A POSTROUTING -o <nic> -j SNAT --to <address>
 ```
+`nic` is the interface having external connectivity. `address` is the address on `nic`.
+
+
+## 2.4 vMX
+
+vMX PFE requires hugepage.
+
+
+## 2.5 vQFX
+
+[vQFX trial](https://www.juniper.net/us/en/dm/free-vqfx-trial/)
+
+[vQFX image download](http://www.juniper.net/support/downloads/?p=vqfxeval#sw)
+
+* Version 18.4, VQFX10K RE Disk Image (qcow2), jinstall-vqfx-10-f-18.4R1.8.qcow2
+* Version 17.4, VQFX10K PFE Disk Image, cosim_20180212.qcow2
+
+RE VM supports virtio NIC. PFE VM has to be e1000 NIC.
+
+Customize the origin RE VM to add configuration for root password, SSH and NETCONF services, and DHCP on em0 interface.
+
+
+# 3 Build POC
+
+* vQFX PFE image and customized RE image.
+* vMX image.
+* CentOS image `CentOS-7-x86_64-GenericCloud-1805.qcow2`.
+* Cirros image `cirros-0.4.0-x86_64-disk.img`.
+* Playbook `contrail-ansible-deployer-5.0.tgz`.
+* Script `vf`, `contrail-command`.
+* command_servers.yml, instances.yaml
+
+```
+vf create-bridge
+vf launch-vqfx
+vf launch-vmx
+```
+
+```
+vf configure-vqfx
+vf configure-vmx
+```
+Underlay is done.
+
+``
+vf launch-builder
+```
+
+```
+vf build-cluster
+vf install-command
+vf launch-command
+```
+
+# 4 Post deployment
 
 ### Enable HAProxy
 
@@ -162,73 +228,4 @@ This for accessing cluster, like web UI, API, etc.
 apt-get install haproxy
 ```
 
-```
-listen openstack_horizon
-  bind 10.87.68.133:80
-  server 10.6.8.1 10.6.8.1:80 check inter 2000 rise 2 fall 5
-
-listen contrail-command
-  bind 10.87.68.133:9091
-  mode tcp
-  server 10.6.8.10 10.6.8.10:9091 check inter 2000 rise 2 fall 5
-
-listen contrail-webui
-  bind 10.87.68.133:8180
-  server 10.6.8.2 10.6.8.2:8180 check inter 2000 rise 2 fall 5
-```
-
-## Build POC
-
-* vQFX vmdk image for RE and PFE.
-* CentOS image `CentOS-7-x86_64-GenericCloud-1805.qcow2`.
-* Cirros image `cirros-0.4.0-x86_64-disk.img`.
-* Playbook `contrail-ansible-deployer-5.0.1-0.214.tgz`.
-* Script `poc`, `contrail-command`.
-* command_servers.yml, instances.yaml
-* playbook.patch
-
-```
-poc build-poc
-```
-or
-```
-poc create-bridge
-poc launch-vqfx
-poc configure-vqfx
-poc launch-bms
-poc launch-builder
-poc build-cluster
-poc install-command
-poc launch-command
-```
-
-## Post deployment
-
-Contrail Command Cluster:Advanced Options:Endpoints,
-Update nodejs endpoint to `http://10.6.11.2:8180`.
-
-Update ingress rule in default SG.
-
-Contrail web UI -> Configure -> Infrastructure -> Project Settings -> Other Settings, enable `VxLAN Routing`.
-
-Add default route `10.6.0.0/24 via 10.6.11.254` to all cluster nodes for reaching loopback addresses.
-
-## Import fabric
-
-Physical routers, BGP routers and a default logical router are created.
-
-Assign role, leaf vQFX is `leaf` and `CRB-Access`, spine vQFX is `spine` and `CRB-Gateway` and `DC-Gateway`.
-
-Associate CSN to leafs who have BMS connected.
-
-Update /etc/kolla/ironic-pxe/config.json.
-```
-{
-   "command": "/usr/sbin/in.tftpd --verbose --foreground --user root --address 0.0.0.0:69 --map-file /map-file /tftpboot --blocksize 1200",
-   "config_files": [
-   ]
-}
-```
-
-Restart container `ironic_pxe`.
 
