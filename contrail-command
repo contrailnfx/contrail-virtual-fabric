@@ -33,8 +33,8 @@ launch_with_new_cluster()
 launch()
 {
     docker login hub.juniper.net \
-      --username JNPR-FieldUser3 \
-      --password E6Ti-V_GhU0yH#umLanQ
+      --username $hub_username \
+      --password $hub_password
     docker pull $image
 
     docker run -t --net host -d --privileged \
