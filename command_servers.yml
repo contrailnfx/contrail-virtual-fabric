@@ -16,8 +16,8 @@ command_servers:
         container_registry: hub.juniper.net/contrail
         container_name: contrail-command
         container_tag: 5.0.2-0.360
-        container_registry_username: JNPR-FieldUser3
-        container_registry_password: E6Ti-V_GhU0yH#umLanQ
+        container_registry_username: $HUB_USERNAME
+        container_registry_password: $HUB_PASSWORD
         #registry_insecure: true
         #container_registry: ci-repo.englab.juniper.net:5010
         #container_name: contrail-command
