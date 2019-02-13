@@ -1,6 +1,5 @@
 #!/bin/bash
 
-source vm.func
 
 host_nic=br0
 host_address=10.87.68.132
@@ -29,6 +28,23 @@ server_list="openstack contrail csn compute"
 vqfx_list="vqfx-s1 vqfx-s2 vqfx-l1 vqfx-l2"
 vmx_list="vmx1 vmx2"
 bms_list="bms12 bms22"
+
+image_cirros=cirros-0.4.0-x86_64-disk.img
+image_centos=CentOS-7-x86_64-GenericCloud-1805.qcow2
+image_vqfx_re=vqfx-re.qcow2
+image_vqfx_pfe=vqfx-pfe.qcow2
+#image_vmx_re=junos-vmx-x86-64-18.3R1.9.qcow2
+#image_vmx_re_hdd=vmxhdd.img
+image_vmx_re=vmx-re.qcow2
+image_vmx_re_hdd=vmx-re-hdd.qcow2
+image_vmx_re_usb=metadata-usb-re.img
+image_vmx_pfe=vFPC-20180829.img
+
+image_path=/root/vm-image
+instance_path=/var/lib/libvirt/instance
+volume_pool=lv
+
+source vm.func
 
 #####################################################
 vm_cpu[vqfx-s1-re]=1
@@ -330,6 +346,41 @@ delete_host_bridge()
         p1=${a[0]}
         p2=${a[1]}
         ip link delete $p1
+    done
+}
+
+rebuild_fabric()
+{
+    for name in $vmx_list; do
+        virsh destroy $name-re
+        virsh destroy $name-pfe
+    done
+    for name in $vqfx_list; do
+        virsh destroy $name-re
+        virsh destroy $name-pfe
+    done
+    for veth in $host_veth_list; do
+        IFS=','; a=(${veth}); unset IFS
+        p1=${a[0]}
+        p2=${a[1]}
+        ip link delete $p1
+    done
+
+    for veth in $host_veth_list; do
+        IFS=','; a=(${veth}); unset IFS
+        p1=${a[0]}
+        p2=${a[1]}
+        ip link add $p1 type veth peer name $p2
+        ip link set dev $p1 up
+        ip link set dev $p2 up
+    done
+    for name in $vqfx_list; do
+        virsh start $name-re
+        virsh start $name-pfe
+    done
+    for name in $vmx_list; do
+        virsh start $name-re
+        virsh start $name-pfe
     done
 }
 
@@ -995,6 +1046,9 @@ main()
         rebuild-cluster)
             delete_cluster
             build_cluster
+            ;;
+        rebuild-fabric)
+            rebuild_fabric
             ;;
         configure-poc)
             configure_poc
