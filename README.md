@@ -227,12 +227,12 @@ virsh pool-autostart lv
 
 `isc-dhcp-server` is for providing DHCP service to vQFX for initialization. After that, static address will be configured on vQFX.
 
-### Ubuntu
+#### Ubuntu
 ```
 apt-get install sshpass isc-dhcp-server
 ```
 
-### CentOS
+#### CentOS
 ```
 yum install sshpass dhcp
 ```
