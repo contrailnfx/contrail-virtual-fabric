@@ -113,23 +113,23 @@ Total              36       214
 
 # 2 Host
 
-The whole virtual fabric stays on single physical server. In this guide, the server has 32 vCPUs, 256 GB memory and 2TB disk.
+The whole virtual fabric stays on a single physical server. In this guide, the server has 32 vCPUs, 256 GB memory and 2TB disk.
 
 CentOS 7.5 and Ubuntu 16.04.3 are validated.
 
 
 ## 2.1 Networking
 
-Install packages for brdge and bond interface.
+Install packages for Linux bridge.
 
 #### CentOS
 ```
-apt-get install bridge-utils
+yum install bridge-utils
 ```
 
 #### Ubuntu
 ```
-apt-get install bridge-utils ifenslave
+apt-get install bridge-utils
 ```
 
 
@@ -212,7 +212,7 @@ kvm                   578558  1 kvm_intel
 
 ## 2.4 Storage
 
-For better VM performance, it's recommended to leave a disk partition for libvirt volume. Here is an example.
+For better VM performance, it's recommended to leave a disk partition for libvirt volume (LVM) and launch VM on the volume. Here is an example to enable volume on disk partition.
 ```
 virsh pool-define-as --name lv --type logical --source-dev /dev/sda3
 virsh pool-build lv
@@ -223,9 +223,9 @@ virsh pool-autostart lv
 
 ## 2.5 Additional packages
 
-`sshpass` is for SSH to vQFX with password in command line. This is only for initialization. After that, SSH key will be used.
+`sshpass` is for SSH with password in command line. This is only for initialization. After that, SSH key will be used.
 
-`isc-dhcp-server` is for providing DHCP service to vQFX for initialization. After that, static address will be configured on vQFX.
+`isc-dhcp-server` is for providing DHCP service for initialization. After that, static address will be configured.
 
 #### Ubuntu
 ```
@@ -299,22 +299,24 @@ Customize the origin RE VM to add configuration for root password, SSH and NETCO
 
 # 5 Build virtual fabric
 
-Images
-```
-CentOS-7-x86_64-GenericCloud-1805.qcow2
-cirros-0.4.0-x86_64-disk.img
-junos-vmx-x86-64-18.3R1.9.qcow2
-metadata-usb-re.img
-vFPC-20180829.img
-vmxhdd.img
-vmx-re-hdd.qcow2
-vmx-re.qcow2
-vqfx-pfe.qcow2
-vqfx-re.qcow2
-```
+## 5.1 Image list
+
+* CentOS-7-x86_64-GenericCloud-1805.qcow2, VM base image for Contrail controllers and compute nodes
+* cirros-0.4.0-x86_64-disk.img, VM base image for BMS and overlay VM
+* junos-vmx-x86-64-18.3R1.9.qcow2, vMX RE VM image
+* metadata-usb-re.img, original vMX RE metadata image
+* vmxhdd.img, original vMX RE HD image
+* vFPC-20180829.img, vMX PFE VM image
+* vmx-re-hdd.qcow2, updated vMX RE HD image with initial configuration
+* vmx-re.qcow2, updated vMX RE image with initial configuration
+* vqfx-re.qcow2, updated vQFX RE image with initial configuration
+* vqfx-pfe.qcow2, vQFX PFE VM image
+
+
+## 5.2 Build
 
 ```
-vf create-bridge
+vf create-link
 vf launch-vqfx
 vf launch-vmx
 ```
