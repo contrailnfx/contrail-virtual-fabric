@@ -299,8 +299,9 @@ Customize the origin RE VM to add configuration for root password, SSH and NETCO
 
 # 5 Build virtual fabric
 
-## 5.1 Image list
+## 5.1 BOM
 
+Image List
 * CentOS-7-x86_64-GenericCloud-1805.qcow2, VM base image for Contrail controllers and compute nodes
 * cirros-0.4.0-x86_64-disk.img, VM base image for BMS and overlay VM
 * junos-vmx-x86-64-18.3R1.9.qcow2, vMX RE VM image
@@ -311,6 +312,18 @@ Customize the origin RE VM to add configuration for root password, SSH and NETCO
 * vmx-re.qcow2, updated vMX RE image with initial configuration
 * vqfx-re.qcow2, updated vQFX RE image with initial configuration
 * vqfx-pfe.qcow2, vQFX PFE VM image
+
+Package List
+* contrail-ansible-deployer.tgz, Ansible playbook package downloaded from Juniper site.
+
+File List
+* vf, script to build virtual fabric
+* vm.func, support functions to build VM
+* instances.yaml, configuration file to build Contrail cluster
+* command_servers.yml, configuration file to build Contrail Command
+* contrail-command, script to build Contrail Command
+* configure-poc, script to configure cloud
+* haproxy.cfg, sample configuration for HAProxy
 
 
 ## 5.2 Build
