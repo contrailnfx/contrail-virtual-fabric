@@ -242,6 +242,7 @@ vm_address_list[compute]="10.6.8.4        10.6.11.4"
 vm_netmask_list[compute]="255.255.255.0   255.255.255.0"
 vm_gateway_list[compute]="10.6.8.254      null"
 vm_nic_list[compute]="br=br-int br=br-r1"
+vm_spec_arg[compute]="--cpu host"
 
 
 get_os()
@@ -307,7 +308,7 @@ build_host()
     #  $image_vqfx_pfe
 }
 
-create_host_bridge()
+create_link()
 {
     local bridge
     local veth
@@ -330,7 +331,7 @@ create_host_bridge()
     done
 }
 
-delete_host_bridge()
+delete_link()
 {
     local bridge
     local veth
@@ -889,7 +890,7 @@ delete_cluster()
 
 create_poc()
 {
-    create_host_bridge
+    create_link
     launch_vqfx_all
     configure_vqfx_s1
     configure_vqfx_l1
@@ -906,14 +907,13 @@ delete_poc()
     delete_cluster
     delete_bms_all
     delete_vqfx_all
-    delete_host_bridge
+    delete_link
 }
 
 help()
 {
     echo "$0 help"
-    echo "  build-host             Setup the host for the POC."
-    echo "  build-host-bridge      Build bridges on the host."
+    echo "  create-link            Build links on the host."
     echo "  launch-vqfx [name]     Launch the specified or all vQFX VMs."
     echo "  configure-vqfx [name]  Configure the specified or all vQFX"
     echo "  launch-bms [name]      Launch the specified or all BMS VMs."
@@ -951,11 +951,11 @@ main()
         test)
             test
             ;;
-        create-bridge)
-            create_host_bridge
+        create-link)
+            create_link
             ;;
-        delete-bridge)
-            delete_host_bridge
+        delete-link)
+            delete_link
             ;;
         launch-vm)
             shift
