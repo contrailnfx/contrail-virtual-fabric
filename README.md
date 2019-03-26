@@ -340,7 +340,7 @@ vf configure-vmx
 ```
 Underlay is done.
 
-``
+```
 vf launch-builder
 ```
 
