@@ -346,6 +346,10 @@ vf launch-builder
 
 ```
 vf build-cluster
+```
+
+Update command_servers.yml and contrail-command.
+```
 vf install-command
 vf launch-command
 ```
