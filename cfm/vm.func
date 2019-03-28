@@ -1,0 +1,379 @@
+
+vm_disk_arg=""
+vm_disk_img=""
+vm_net_arg=""
+
+declare -A vm_cpu
+declare -A vm_ram
+declare -A vm_disk
+declare -A vm_image_type
+declare -A vm_os
+declare -A vm_address_list
+declare -A vm_netmask_list
+declare -A vm_gateway_list
+declare -A vm_nic_list
+declare -A vm_nic_model
+declare -A vm_disk_bus
+declare -A vm_spec_arg
+
+## CentOS cloud image based, on volume, disk resize, customized.
+#vm_cpu[controller]=4
+#vm_ram[controller]=32768
+#vm_disk[controller]=100G
+#vm_os[controller]=centos
+#vm_image_type[controller]=volume
+#vm_address_list[controller]="10.6.8.10       10.6.11.10"
+#vm_netmask_list[controller]="255.255.255.0   255.255.255.0"
+#vm_gateway_list[controller]="10.6.8.254      null"
+#vm_nic_list[controller]="br-int br-l1-xe1"
+
+## CentOS cloud image based, on file, disk resize, customized.
+#vm_cpu[controller]=4
+#vm_ram[controller]=32768
+#vm_disk[controller]=100G
+#vm_os[controller]=centos
+#vm_image_type[controller]=file
+#vm_address_list[controller]="10.6.8.10       10.6.11.10"
+#vm_netmask_list[controller]="255.255.255.0   255.255.255.0"
+#vm_gateway_list[controller]="10.6.8.254      null"
+#vm_nic_list[controller]="br-int br-l1-xe1"
+
+## Cirros cloud image based, on file, no resize, no customiztion.
+#vm_cpu[bms21]=1
+#vm_ram[bms21]=1024
+#vm_os[bms21]=cirros
+#vm_image_type[bms21]=file
+#vm_nic_list[bms21]="br-l2-xe1"
+
+## No host OS, VM is defined only, on file, with size, no customiztion.
+#vm_cpu[bms-dh]=1
+#vm_ram[bms-dh]=2048
+#vm_disk[bms-dh]=40G
+#vm_os[bms-dh]=none
+#vm_image_type[bms-dh]=file
+#vm_nic_list[bms-dh]="br-int br-l2-xe2"
+
+
+wait_for_host()
+{
+    local arr=(${vm_address_list[$1]})
+    local host=${arr[0]}
+    local password=$2
+
+    echo "Wait for $host up..."
+    while [ 1 ]; do
+        ping -c 1 -W 10 $host > /dev/null
+        if [ $? == 0 ]; then
+            echo "$host is running."
+            break
+        else
+            echo "Wait for $host up..."
+            sleep 10
+        fi
+    done
+    echo "Wait for $host SSH..."
+    while [ 1 ]; do
+        if [ "$password" ]; then
+            sshpass -p $password ssh $host "echo check" > /dev/null
+        else
+            ssh -q $host "echo check" > /dev/null
+        fi
+        if [ $? == 0 ]; then
+            echo "$host SSH is ready."
+            break
+        else
+            echo "Wait for $host SSH..."
+            sleep 10
+        fi
+    done
+}
+
+create_vm_config_common()
+{
+    local name=$1
+
+    cat << __EOF__ > hosts
+127.0.0.1 localhost.contrail.juniper.net localhost
+${eth0_address[$name]} $name.contrail.juniper.net $name
+__EOF__
+
+    cat << __EOF__ > ntp.conf
+driftfile /var/lib/ntp/drift
+server 10.84.5.101
+restrict 127.0.0.1
+restrict -6 ::1
+includefile /etc/ntp/crypto/pw
+keys /etc/ntp/keys
+__EOF__
+
+    cp /root/.ssh/id_rsa.pub authorized_keys
+}
+
+create_vm_config_centos()
+{
+    local name=$1
+    local count
+
+    create_vm_config_common
+
+    count=0
+    for address in ${vm_address_list[$name]}; do
+        arr=(${vm_netmask_list[$name]})
+        netmask=${arr[$count]}
+        arr=(${vm_gateway_list[$name]})
+        gateway=${arr[$count]}
+        cat << __EOF__ > ifcfg-eth$count
+DEVICE=eth$count
+TYPE=Ethernet
+BOOTPROTO=static
+ONBOOT=yes
+IPADDR=$address
+NETMASK=$netmask
+__EOF__
+
+        if [ $gateway != "null" ]; then
+            cat << __EOF__ >> ifcfg-eth$count
+GATEWAY=$gateway
+DNS1=10.84.5.101
+DNS2=172.21.200.60
+DNS3=172.29.131.60
+DOMAIN="contrail.juniper.net juniper.net englab.juniper.net"
+__EOF__
+        fi
+        count=$((count + 1))
+    done
+}
+
+create_vm_config_ubuntu()
+{
+    echo ""
+}
+
+create_vm_config_rhel()
+{
+    echo ""
+}
+
+clean_vm_config()
+{
+    rm -f hosts
+    rm -f ntp.conf
+    rm -f authorized_keys
+    rm -f ifcfg-eth*
+    rm -f interfaces
+}
+
+customize_vm_centos()
+{
+    local name=$1
+    local upload_arg=""
+
+    count=0
+    for address in ${vm_address_list[$name]}; do
+        upload_arg+="--upload ifcfg-eth$count:/etc/sysconfig/network-scripts "
+        count=$((count + 1))
+    done
+
+    create_vm_config_centos $name
+    virt-customize \
+        -a $vm_disk_img \
+        --hostname $name \
+        --root-password password:c0ntrail123 \
+        --upload hosts:/etc \
+        --run-command 'sed -i "s/#UseDNS yes/UseDNS no/g" /etc/ssh/sshd_config' \
+        --run-command 'mkdir -p /root/.ssh' \
+        --upload authorized_keys:/root/.ssh \
+        --run-command 'chmod 600 /root/.ssh/authorized_keys' \
+        $upload_arg \
+        --run-command 'yum remove -y cloud-init' \
+        --run-command 'systemctl disable chronyd' \
+        --install 'ntp' \
+        --upload ntp.conf:/etc \
+        --run-command 'systemctl enable ntpd' \
+        --selinux-relabel
+    clean_vm_config
+}
+
+customize_vm_ubuntu()
+{
+    echo ""
+}
+
+customize_vm_rhel()
+{
+    echo ""
+}
+
+create_vm_image()
+{
+    local name=$1
+
+    vm_disk_img=$instance_path/$name.qcow2
+    if [ ${vm_disk_bus[$name]} ]; then
+        vm_disk_arg="--disk \
+          path=$vm_disk_img,format=qcow2,bus=${vm_disk_bus[$name]}"
+    else
+        vm_disk_arg="--disk path=$vm_disk_img,format=qcow2,bus=virtio"
+    fi
+    qemu-img create -f qcow2 -o preallocation=metadata \
+      $vm_disk_img ${vm_disk[$name]}
+}
+
+build_vm_image()
+{
+    local name=$1
+    local src_img=$2
+
+    if [ ${vm_image_type[$name]} == "volume" ]; then
+        # Volume is only supported by CentOS, Ubuntu and RHEL,
+        # disk size is mandatory.
+        vm_disk_img=/dev/$volume_pool/$name
+        vm_disk_arg="--disk bus=virtio,vol=$volume_pool/$name,cache=none"
+        virsh vol-create-as $volume_pool $name ${vm_disk[$name]}
+        virt-resize --expand /dev/sda1 $src_img $vm_disk_img
+    else
+        # File is supported by all OS,
+        # but disk size is only supported by CentOS, Ubuntu and RHEL.
+        vm_disk_img=$instance_path/$name.qcow2
+        vm_disk_arg="--disk path=$vm_disk_img,format=qcow2"
+        if [ ${vm_disk[$name]} ]; then
+            qemu-img create -f qcow2 -o preallocation=metadata \
+              $vm_disk_img ${vm_disk[$name]}
+            virt-resize --expand /dev/sda1 $src_img $vm_disk_img
+        else
+            cp $src_img $vm_disk_img
+        fi
+    fi
+}
+
+build_vmx_re_image()
+{
+    local name=$1
+
+    cp $image_path/$image_vmx_re $instance_path/$name.qcow2
+    cp $image_path/$image_vmx_re_hdd $instance_path/$name-hdd.qcow2
+    cp $image_path/$image_vmx_re_usb $instance_path/$name-usb.qcow2
+    vm_disk_arg=" \
+      --disk path=$instance_path/$name.qcow2,format=qcow2,bus=virtio \
+      --disk path=$instance_path/$name-hdd.qcow2,bus=virtio \
+      --disk path=$instance_path/$name-usb.qcow2,bus=virtio"
+}
+
+build_vm_net_arg()
+{
+    local name=$1
+    local model=virtio
+    local n
+
+    if [ "${vm_nic_model[$name]}" ]; then
+        model=${vm_nic_model[$name]}
+    fi
+
+    if [ "${vm_nic_list[$name]}" ]; then
+        vm_net_arg=""
+        for n in ${vm_nic_list[$name]}; do
+            IFS='='; a=(${n}); unset IFS
+            key=${a[0]}
+            val=${a[1]}
+            if [ $key == "br" ]; then
+                vm_net_arg+="--network bridge=$val,model=$model "
+            elif [ $key == "dir" ]; then
+                vm_net_arg+="--network type=direct,source=$val,model=$model "
+            fi
+        done
+    fi
+}
+
+define_vm()
+{
+    local name=$1
+
+    build_vm_net_arg $name
+
+    virsh define /dev/stdin << __EOT__
+$(virt-install --connect qemu:///system --virt-type kvm \
+    --name $name --vcpus ${vm_cpu[$name]} --ram ${vm_ram[$name]} \
+    $vm_disk_arg $vm_net_arg \
+    --graphics vnc,listen=0.0.0.0 --noautoconsole --boot hd \
+    --print-xml)
+__EOT__
+}
+
+create_vm()
+{
+    local name=$1
+    local spec_arg=""
+
+    build_vm_net_arg $name
+    if [ "${vm_spec_arg[$name]}" ]; then
+        spec_arg=${vm_spec_arg[$name]}
+    fi
+    virt-install --connect qemu:///system --virt-type kvm \
+      --name $name --vcpus ${vm_cpu[$name]} --ram ${vm_ram[$name]} \
+      $spec_arg $vm_disk_arg $vm_net_arg \
+      --graphics vnc,listen=0.0.0.0 --noautoconsole --boot hd
+}
+
+launch_vm()
+{
+    local name=$1
+    local dst_img
+    local np=""
+    local br
+
+    echo "Launch $name..."
+    if [ ${vm_os[$name]} == "centos" ]; then
+        build_vm_image $name $image_path/$image_centos
+        customize_vm_centos $name
+        create_vm $name
+    elif [ ${vm_os[$name]} == "ubuntu" ]; then
+        build_vm_image $name $image_path/$image_ubuntu
+        customize_vm_centos $name
+        create_vm $name
+    elif [ ${vm_os[$name]} == "rhel" ]; then
+        build_vm_image $name $image_path/$image_rhel
+        customize_vm_centos $name
+        create_vm $name
+    elif [ ${vm_os[$name]} == "cirros" ]; then
+        build_vm_image $name $image_path/$image_cirros
+        create_vm $name
+    elif [ ${vm_os[$name]} == "none" ]; then
+        create_vm_image $name
+        define_vm $name
+    elif [ ${vm_os[$name]} == "vqfx-re" ]; then
+        build_vm_image $name $image_path/$image_vqfx_re
+        define_vm $name
+        build_dhcp_conf
+        virsh start $name
+    elif [ ${vm_os[$name]} == "vqfx-pfe" ]; then
+        build_vm_image $name $image_path/$image_vqfx_pfe
+        create_vm $name
+    elif [ ${vm_os[$name]} == "vmx-re" ]; then
+        build_vmx_re_image $name
+        define_vm $name
+        build_dhcp_conf
+        virsh start $name
+    elif [ ${vm_os[$name]} == "vmx-pfe" ]; then
+        build_vm_image $name $image_path/$image_vmx_pfe
+        create_vm $name
+    else
+        echo "ERROR: OS ${vm_os[$name]} is not supported!"
+        exit 0
+    fi
+
+}
+
+delete_vm()
+{
+    local name=$1
+
+    virsh destroy $name
+    virsh undefine $name
+    if [ ${vm_image_type[$name]} == "volume" ]; then
+        virsh vol-delete $name $volume_pool
+    else
+        rm -f $instance_path/$name.qcow2
+
+    fi
+}
+
