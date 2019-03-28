@@ -3,8 +3,8 @@
 
 # 1 Deployment
 
-#### [Contrail Fabric Management](cfm/README.md)
-#### [Contrail and Kubernetes](kubernetes/README.md)
+#### [Contrail Fabric Management](cfm)
+#### [Contrail and Kubernetes](kubernetes)
 
 # 2 Hypervisor Host
 
