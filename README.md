@@ -5,6 +5,7 @@
 
 #### [Contrail Fabric Management](cfm)
 #### [Contrail and Kubernetes](kubernetes)
+#### [MX Gateway](mx-gateway)
 
 # 2 Hypervisor Host
 
@@ -183,6 +184,11 @@ Add `iptables` rule into NAT table.
 iptables -t nat -A POSTROUTING -o <nic> -j SNAT --to <address>
 ```
 `nic` is the interface having external connectivity. `address` is the address on `nic`.
+
+
+## 2.9 Hugepage
+
+Hugepage is required by vMX PFE. Transparent hugepage will be used by libvirt if there is no 2M or 1G hugepage pool created.
 
 
 # 3 vMX
