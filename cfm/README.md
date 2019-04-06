@@ -1,6 +1,6 @@
 
-# Contrail Virtual Fabric
-#### Contrail Fabric Management
+#### Contrail Virtual Fabric
+# Contrail Fabric Management
 
 # Topology
 
@@ -90,18 +90,18 @@ openstack           4        64            100      CentOS 7.5-1805
 contrail            4        64            100      CentOS 7.5-1805
 csn                 1        16             80      CentOS 7.5-1805
 compute             4        32            100      CentOS 7.5-1805
-vqfx-leaf1-re       1         1                     Junos 18.1
-vqfx-leaf1-pfe      1         2                     Junos 18.1
-vqfx-leaf2-re       1         1                     Junos 18.1
-vqfx-leaf2-pfe      1         2                     Junos 18.1
-vqfx-spine1-re      1         1                     Junos 18.1
-vqfx-spine11-pfe    1         2                     Junos 18.1
-vqfx-spine1-re      1         1                     Junos 18.1
-vqfx-spine11-pfe    1         2                     Junos 18.1
-vmx-gw1-vcp         1         1                     Junos 18.3R1
-vmx-gw1-vfp         4         2                     Junos 18.3R1
-vmx-gw2-vcp         1         1                     Junos 18.3R1
-vmx-gw2-vfp         4         2                     Junos 18.3R1
+vqfx-leaf1-re       1         1                     Junos 18.4R1.8
+vqfx-leaf1-pfe      1         2                     Junos 18.4R1.8
+vqfx-leaf2-re       1         1                     Junos 18.4R1.8
+vqfx-leaf2-pfe      1         2                     Junos 18.4R1.8
+vqfx-spine1-re      1         1                     Junos 18.4R1.8
+vqfx-spine11-pfe    1         2                     Junos 18.4R1.8
+vqfx-spine1-re      1         1                     Junos 18.4R1.8
+vqfx-spine11-pfe    1         2                     Junos 18.4R1.8
+vmx-gw1-vcp         1         1                     Junos 18.3R1.9
+vmx-gw1-vfp         4         2                     Junos 18.3R1.9
+vmx-gw2-vcp         1         1                     Junos 18.3R1.9
+vmx-gw2-vfp         4         2                     Junos 18.3R1.9
 bms12               1         1                     Cirros 0.4.0
 bms22               1         1                     Cirros 0.4.0
 bms-dh              1         1                     CentOS 7.5-1805
